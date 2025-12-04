@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mission Active</title>
+    <!-- Force reload CSS -->
+    <link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+
+<body>
+    <!-- Sound Effects -->
+    <audio id="sfx-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="sfx-wrong" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
+
+    <div class="container">
+        <h1 id="game-title" style="text-align: center; color: var(--neon-blue);">INITIALIZING...</h1>
+
+        <div id="game-ui" class="question-box">
+            <!-- Loading State -->
+            <p id="status-msg" style="text-align:center; animation: blink 1.5s infinite;">
+                CONNECTING TO CORE...
+            </p>
+        </div>
+
+        <button id="next-btn" class="hidden" onclick="nextQuestion()" style="width:100%">CONTINUE MISSION >></button>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const gameType = "{{ game_type }}";
+        const token = params.get("token");
+        const API = "/api";
+
+        let questions = [];
+        let currentIdx = 0;
+        let score = 0;
+
+        // Set Title
+        document.getElementById("game-title").innerText = gameType.replace("-", " ").toUpperCase();
+
+        // Dynamic Color System
+        const colors = {
+            'tense-traveler': 'var(--neon-blue)',
+            'sentence-slayer': 'var(--neon-red)',
+            'word-wizard': 'var(--neon-purple)'
+        };
+        const themeColor = colors[gameType] || 'white';
+        document.documentElement.style.setProperty('--neon-blue', themeColor);
+
+        // --- ERROR HANDLER ---
+        function showError(msg) {
+            const ui = document.getElementById("game-ui");
+            ui.innerHTML = `
+                <h3 style="color:#f87171; text-align:center;">⚠️ MISSION FAILED</h3>
+                <p style="text-align:center;">${msg}</p>
+                <button onclick="window.close()" style="width:100%; border-color:#f87171; color:#f87171; margin-top:10px;">CLOSE TERMINAL</button>
+            `;
+            ui.style.border = "2px solid #f87171";
+        }
+
+        async function init() {
+            if (!token) return showError("Authentication Token Missing. Please log in again.");
+
+            try {
+                const res = await fetch(`${API}/games/start`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": token },
+                    body: JSON.stringify({ game_type: gameType })
+                });
+
+                // Check for HTTP errors (401, 500, etc)
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || `Server Error ${res.status}`);
+                }
+
+                const data = await res.json();
+
+                if (!data.questions || data.questions.length === 0) {
+                    throw new Error("No mission data received.");
+                }
+
+                questions = data.questions;
+                renderQuestion();
+
+            } catch (e) {
+                console.error(e);
+                showError(e.message || "Connection Lost.");
+            }
+        }
+
+        function renderQuestion() {
+            if (currentIdx >= questions.length) return finishGame();
+
+            const q = questions[currentIdx];
+            const container = document.getElementById("game-ui");
+
+            // Reset borders
+            container.style.border = "1px solid " + themeColor;
+            container.style.boxShadow = "none";
+
+            if (q.opts) {
+                // Multiple Choice
+                let html = `<h3>${q.q}</h3>`;
+                q.opts.forEach(opt => {
+                    html += `<button class="option-btn" onclick="checkAnswer('${opt}', '${q.ans}', '${q.why}')">${opt}</button>`;
+                });
+                html += `<div id="feedback" class="feedback"></div>`;
+                container.innerHTML = html;
+            } else if (q.sent || q.word) {
+                // Text Input
+                const txt = q.sent || `Definition: "${q.def}"`;
+                const corr = q.corr || q.word;
+                const why = q.why || q.ex;
+                // Store current question data for the button handler
+                window.currentCorrect = corr;
+                window.currentWhy = why;
+                container.innerHTML = `
+                    <h3>${txt}</h3>
+                    <p style="font-size:0.8rem; color:#94a3b8">ENTER SOLUTION:</p>
+                    <input type="text" id="ans-input" autocomplete="off" onkeypress="if(event.key==='Enter')submitTextAnswer()">
+                    <button onclick="submitTextAnswer()">EXECUTE</button>
+                    <div id="feedback" class="feedback"></div>
+                `;
+            }
+            document.getElementById("next-btn").classList.add("hidden");
+        }
+
+        function checkAnswer(user, correct, explanation) {
+            const fb = document.getElementById("feedback");
+            const container = document.getElementById("game-ui");
+
+            if (user.trim().toLowerCase() === correct.trim().toLowerCase()) {
+                document.getElementById('sfx-correct').play().catch(() => { });
+                fb.innerHTML = `<h3 style="color:#4ade80">ACCESS GRANTED</h3><p>${explanation}</p>`;
+                container.style.border = "2px solid #4ade80";
+                container.style.boxShadow = "0 0 30px rgba(74, 222, 128, 0.4)";
+                score += 10;
+            } else {
+                document.getElementById('sfx-wrong').play().catch(() => { });
+                fb.innerHTML = `<h3 style="color:#f87171">ACCESS DENIED</h3><p>${explanation}</p>`;
+                container.style.border = "2px solid #f87171";
+                container.style.boxShadow = "0 0 30px rgba(248, 113, 113, 0.4)";
+                // Screen shake animation
+                container.animate([
+                    { transform: 'translateX(0)' },
+                    { transform: 'translateX(10px)' },
+                    { transform: 'translateX(-10px)' },
+                    { transform: 'translateX(0)' }
+                ], { duration: 200 });
+            }
+            document.getElementById("next-btn").classList.remove("hidden");
+        }
+
+        function checkTextAns(correct, explanation) {
+            const val = document.getElementById("ans-input").value.trim();
+            if (!val) return;
+            checkAnswer(val, correct, explanation);
+        }
+
+        function submitTextAnswer() {
+            const val = document.getElementById("ans-input").value.trim();
+            if (!val) return;
+            checkAnswer(val, window.currentCorrect, window.currentWhy);
+        }
+
+        function submitTextAnswer() {
+            const val = document.getElementById("ans-input").value.trim();
+            if (!val) return;
+            checkAnswer(val, window.currentCorrect, window.currentWhy);
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            renderQuestion();
+        }
+
+        async function finishGame() {
+            document.getElementById("next-btn").classList.add("hidden");
+            const ui = document.getElementById("game-ui");
+
+            ui.innerHTML = `<h3 style="color:${themeColor}; text-align:center">UPLOADING DATA...</h3>`;
+
+            try {
+                await fetch(`${API}/games/complete`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": token },
+                    body: JSON.stringify({ game_type: gameType, score: score, count: questions.length })
+                });
+            } catch (e) { console.error(e); }
+
+            ui.innerHTML = `
+                <div style="text-align:center">
+                    <h2 style="color: #4ade80;">MISSION COMPLETE</h2>
+                    <p style="font-size: 1.2rem; margin: 20px 0;">
+                        FINAL XP: <strong style="color:white">${score}</strong> / ${questions.length * 10}
+                    </p>
+                    <div style="height: 1px; background: #334155; margin: 20px 0;"></div>
+                    <button onclick="window.close()" style="width:100%; border-color: #4ade80; color: #4ade80;">
+                        RETURN TO BASE
+                    </button>
+                </div>
+            `;
+            ui.style.border = "2px solid #4ade80";
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
