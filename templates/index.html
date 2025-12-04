@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>GrammarQuest AI</title>
+  <link rel="stylesheet" href="/static/style.css?v=2">
+</head>
+
+<body>
+  <!-- Sound Effects (Hidden) -->
+  <audio id="sfx-hover" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+  <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+
+  <div class="container">
+    <h1>GrammarQuest AI <span style="font-size:1.5rem">🛡️</span></h1>
+
+    <!-- Auth Section -->
+    <div id="auth-section" class="auth-box">
+      <h2>Identify Yourself</h2>
+      <input type="text" id="u_name" placeholder="Username">
+      <input type="password" id="u_pass" placeholder="Password">
+      <br>
+      <button onclick="login()">Initialize System</button>
+      <p id="auth-msg"></p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+      <div class="stats-bar">
+        <span class="stat-item">🏆 XP: <b id="score-display">0</b></span>
+        <span class="stat-item">📚 LOGS: <b id="qs-display">0</b></span>
+        <button class="btn-logout" onclick="logout()">LOGOUT</button>
+      </div>
+
+      <h2 style="text-align:center; margin-bottom: 30px; font-size: 1.2rem; opacity: 0.8;">Select Mission Protocol</h2>
+
+      <div class="grid">
+        <!-- Tense Traveler (Blue) -->
+        <div class="card" data-type="tense" onclick="openGame('tense-traveler')" onmouseenter="playHover()">
+          <div class="icon-box">⏳</div>
+          <h3>Tense Traveler</h3>
+          <p>Navigate the timeline. Master Past, Present, and Future tenses to repair the continuum.</p>
+          <div class="play-hint" style="color: var(--neon-blue)">Initialize Mission >></div>
+        </div>
+
+        <!-- Sentence Slayer (Red) -->
+        <div class="card" data-type="slayer" onclick="openGame('sentence-slayer')" onmouseenter="playHover()">
+          <div class="icon-box">⚔️</div>
+          <h3>Sentence Slayer</h3>
+          <p>Combat syntax errors. Identify and eliminate grammatical mistakes in the arena.</p>
+          <div class="play-hint" style="color: var(--neon-red)">Enter Arena >></div>
+        </div>
+
+        <!-- Word Wizard (Purple) -->
+        <div class="card" data-type="wizard" onclick="openGame('word-wizard')" onmouseenter="playHover()">
+          <div class="icon-box">🧙</div>
+          <h3>Word Wizard</h3>
+          <p>Decipher ancient runes. Guess definitions and expand your lexicon.</p>
+          <div class="play-hint" style="color: var(--neon-purple)">Cast Spell >></div>
+        </div>
+
+        <!-- Oracle Chat (Green) -->
+        <div class="card" data-type="chat" onclick="openChat()" onmouseenter="playHover()">
+          <div class="icon-box">🤖</div>
+          <h3>Oracle Chat</h3>
+          <p>Consult the AI Core. Ask any grammar question and receive instant wisdom.</p>
+          <div class="play-hint" style="color: var(--neon-green)">Open Comms >></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+
+</html>
