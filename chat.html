@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Oracle Chat</title>
+    <link rel="stylesheet" href="/static/style.css?v=2">
+</head>
+
+<body>
+    <div class="container">
+        <h1>AI Grammar Oracle <span style="font-size:1.5rem">🤖</span></h1>
+
+        <div id="chat-history">
+            <div class="msg ai-msg">System Online. Ask me anything about grammar.</div>
+        </div>
+
+        <div class="chat-input" style="margin-top:20px; display:flex; gap:10px;">
+            <input type="text" id="msg-input" placeholder="Type query here..." onkeypress="handleEnter(event)">
+            <button onclick="send()" style="margin-top:0; width:auto;">SEND</button>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token");
+        const hist = document.getElementById("chat-history");
+
+        function handleEnter(e) { if (e.key === "Enter") send(); }
+
+        function appendMsg(text, type) {
+            const div = document.createElement("div");
+            div.className = `msg ${type}`;
+            div.innerText = text;
+            hist.appendChild(div);
+            hist.scrollTop = hist.scrollHeight;
+        }
+
+        async function send() {
+            const inp = document.getElementById("msg-input");
+            const txt = inp.value.trim();
+            if (!txt) return;
+
+            appendMsg(txt, "user-msg");
+            inp.value = "";
+            appendMsg("Processing...", "ai-msg");
+
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": token },
+                    body: JSON.stringify({ message: txt })
+                });
+                const data = await res.json();
+                hist.lastChild.remove(); // Remove loading text
+                appendMsg(data.response, "ai-msg");
+            } catch (e) {
+                hist.lastChild.innerText = "Error: Connection Failed.";
+            }
+        }
+    </script>
+</body>
+
+</html>
